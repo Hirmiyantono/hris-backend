@@ -16,8 +16,8 @@ A comprehensive Human Resource Information System built with NestJS and TypeScri
 
 - **Framework**: NestJS 10.x
 - **Language**: TypeScript 5.x (Strict Mode)
-- **Database**: MySQL 8.0+ (To be configured in Task 1.3)
-- **Cache**: Redis (To be configured later)
+- **Database**: MySQL 8.0+ (Configured - see Database section)
+- **Cache**: Redis 6.x+ (Configured - see Redis section)
 - **Queue**: BullMQ (To be configured later)
 - **Authentication**: JWT-based authentication (To be implemented in Auth module)
 - **API**: RESTful APIs with OpenAPI 3.0 documentation
@@ -26,8 +26,8 @@ A comprehensive Human Resource Information System built with NestJS and TypeScri
 
 - Node.js 20.x or higher
 - npm 9.x or higher
-- MySQL 8.0+ (for later tasks)
-- Redis (for later tasks)
+- MySQL 8.0+
+- Redis 6.x+ (for caching and session storage)
 
 ## Installation
 
@@ -198,7 +198,99 @@ API documentation will be available at `/api/v1/docs` (to be configured with Swa
 
 ## Database
 
-Database configuration and migrations will be set up in Task 1.3.
+Database is configured with TypeORM and MySQL. The application uses migrations for database schema management.
+
+### Running Migrations
+
+```bash
+# Generate a new migration
+npm run migration:generate -- src/database/migrations/MigrationName
+
+# Run pending migrations
+npm run migration:run
+
+# Revert last migration
+npm run migration:revert
+
+# Show migration status
+npm run migration:show
+```
+
+### Database Health Check
+
+Check database connectivity:
+```bash
+curl http://localhost:3000/api/v1/health/database
+```
+
+## Redis
+
+Redis is configured for caching and session storage with graceful degradation.
+
+### Redis Configuration
+
+Configure Redis in `.env`:
+```env
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=           # Optional
+REDIS_DB=0               # Default: 0 (0-15)
+```
+
+### Redis Setup
+
+**Local Development (Docker):**
+```bash
+docker run -d \
+  --name redis-hris \
+  -p 6379:6379 \
+  redis:7-alpine
+```
+
+**Local Development (Native):**
+- macOS: `brew install redis && brew services start redis`
+- Ubuntu: `sudo apt install redis-server && sudo systemctl start redis`
+- Windows: Use WSL2 or Docker
+
+### Redis Features
+
+- **Connection Retry**: Automatic reconnection with exponential backoff (max 2s delay)
+- **Graceful Degradation**: Application starts even if Redis is unavailable
+- **Health Monitoring**: Connection status monitoring with event handlers
+- **TTL Support**: Configurable time-to-live for cached entries
+
+### Redis Health Check
+
+Check Redis connectivity:
+```bash
+curl http://localhost:3000/api/v1/health/redis
+```
+
+### Using CacheService
+
+The `CacheService` provides methods for cache operations:
+
+```typescript
+import { CacheService } from './modules/cache/cache.service';
+
+// Set with TTL (3600 seconds)
+await cacheService.set('user:123', userData, 3600);
+
+// Get value
+const user = await cacheService.get<User>('user:123');
+
+// Delete key
+await cacheService.delete('user:123');
+
+// Delete pattern
+await cacheService.deletePattern('user:*');
+
+// Check existence
+const exists = await cacheService.exists('user:123');
+
+// Health check
+const isHealthy = await cacheService.ping();
+```
 
 ## Security
 
@@ -212,7 +304,7 @@ Database configuration and migrations will be set up in Task 1.3.
 ## Performance
 
 - Sub-2-second response times for 95% of read operations
-- Caching with Redis for frequently accessed data (to be configured)
+- Caching with Redis for frequently accessed data (configured)
 - Pagination for list endpoints (max 100 records)
 - Background job processing with BullMQ (to be configured)
 

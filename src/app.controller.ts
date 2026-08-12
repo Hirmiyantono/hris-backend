@@ -26,4 +26,15 @@ export class AppController {
   }> {
     return this.appService.getDatabaseHealth();
   }
+
+  @Get('health/redis')
+  async getRedisHealth(): Promise<{
+    status: string;
+    isConnected: boolean;
+    error?: string;
+    responseTime: string;
+    timestamp: string;
+  }> {
+    return this.appService.getRedisHealth();
+  }
 }
