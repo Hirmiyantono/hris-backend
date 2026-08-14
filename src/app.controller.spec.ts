@@ -3,6 +3,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DataSource } from 'typeorm';
 import { CacheService } from './modules/cache/cache.service';
+import { QueueService } from './modules/queue/queue.service';
+import { QueueType } from './modules/queue/interfaces/queue-types.enum';
 
 describe('AppController', () => {
   let appController: AppController;
@@ -23,6 +25,14 @@ describe('AppController', () => {
     onModuleDestroy: jest.fn(),
   };
 
+  const mockQueueService = {
+    getQueueHealth: jest.fn(),
+    getJobStatus: jest.fn(),
+    getAllQueueMetrics: jest.fn(),
+    addJob: jest.fn(),
+    onModuleDestroy: jest.fn(),
+  };
+
   beforeEach(async () => {
     const app: TestingModule = await Test.createTestingModule({
       controllers: [AppController],
@@ -35,6 +45,10 @@ describe('AppController', () => {
         {
           provide: CacheService,
           useValue: mockCacheService,
+        },
+        {
+          provide: QueueService,
+          useValue: mockQueueService,
         },
       ],
     }).compile();
@@ -120,6 +134,120 @@ describe('AppController', () => {
       expect(result).toHaveProperty('error', 'Redis connection error');
       expect(result).toHaveProperty('responseTime');
       expect(result).toHaveProperty('timestamp');
+    });
+  });
+
+  describe('getQueuesHealth', () => {
+    it('should return healthy status when all queues are healthy', async () => {
+      mockQueueService.getQueueHealth.mockResolvedValue({
+        name: QueueType.PAYROLL,
+        isHealthy: true,
+        connection: 'connected',
+        counts: { waiting: 0, active: 0, completed: 10, failed: 0, delayed: 0 },
+        workers: 0,
+      });
+
+      const result = await appController.getQueuesHealth();
+
+      expect(result).toHaveProperty('status', 'healthy');
+      expect(result).toHaveProperty('queues');
+      expect(result.queues).toHaveLength(4);
+      expect(result).toHaveProperty('timestamp');
+    });
+
+    it('should return degraded status when some queues are unhealthy', async () => {
+      mockQueueService.getQueueHealth
+        .mockResolvedValueOnce({
+          name: QueueType.PAYROLL,
+          isHealthy: true,
+          connection: 'connected',
+          counts: { waiting: 0, active: 0, completed: 10, failed: 0, delayed: 0 },
+          workers: 0,
+        })
+        .mockResolvedValueOnce({
+          name: QueueType.NOTIFICATION,
+          isHealthy: false,
+          connection: 'disconnected',
+          counts: { waiting: 0, active: 0, completed: 0, failed: 0, delayed: 0 },
+          workers: 0,
+        })
+        .mockResolvedValueOnce({
+          name: QueueType.REPORT,
+          isHealthy: true,
+          connection: 'connected',
+          counts: { waiting: 0, active: 0, completed: 5, failed: 0, delayed: 0 },
+          workers: 0,
+        })
+        .mockResolvedValueOnce({
+          name: QueueType.MAINTENANCE,
+          isHealthy: true,
+          connection: 'connected',
+          counts: { waiting: 0, active: 0, completed: 3, failed: 0, delayed: 0 },
+          workers: 0,
+        });
+
+      const result = await appController.getQueuesHealth();
+
+      expect(result).toHaveProperty('status', 'degraded');
+      expect(result.queues).toHaveLength(4);
+    });
+
+    it('should return unhealthy status when all queues are unhealthy', async () => {
+      mockQueueService.getQueueHealth.mockResolvedValue({
+        name: QueueType.PAYROLL,
+        isHealthy: false,
+        connection: 'disconnected',
+        counts: { waiting: 0, active: 0, completed: 0, failed: 0, delayed: 0 },
+        workers: 0,
+      });
+
+      const result = await appController.getQueuesHealth();
+
+      expect(result).toHaveProperty('status', 'unhealthy');
+    });
+  });
+
+  describe('getJobStatus', () => {
+    it('should return job status for valid job ID', async () => {
+      const mockJobStatus = {
+        jobId: 'test-job-123',
+        queue: QueueType.PAYROLL,
+        name: 'process-payroll',
+        state: 'completed' as const,
+        progress: 100,
+        data: { companyId: '123' },
+        result: { success: true },
+        attemptsMade: 1,
+        attemptsTotal: 3,
+        createdAt: new Date(),
+      };
+
+      mockQueueService.getJobStatus.mockResolvedValueOnce(mockJobStatus);
+
+      const result = await appController.getJobStatus('test-job-123');
+
+      expect(result).toBeDefined();
+      expect(result.jobId).toBe('test-job-123');
+      expect(result.state).toBe('completed');
+      expect(result.progress).toBe(100);
+    });
+
+    it('should return unknown state for non-existent job', async () => {
+      mockQueueService.getJobStatus.mockResolvedValueOnce({
+        jobId: 'non-existent',
+        queue: QueueType.PAYROLL,
+        name: 'unknown',
+        state: 'unknown' as const,
+        progress: 0,
+        data: null,
+        attemptsMade: 0,
+        attemptsTotal: 0,
+        createdAt: new Date(),
+      });
+
+      const result = await appController.getJobStatus('non-existent');
+
+      expect(result.state).toBe('unknown');
     });
   });
 });

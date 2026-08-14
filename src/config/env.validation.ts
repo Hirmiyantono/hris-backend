@@ -51,6 +51,31 @@ export class EnvironmentVariables {
   @Max(15)
   @IsOptional()
   REDIS_DB?: number = 0;
+
+  // Queue concurrency configuration (Task 1.5)
+  @IsNumber()
+  @Min(1)
+  @Max(50)
+  @IsOptional()
+  QUEUE_PAYROLL_CONCURRENCY?: number = 2;
+
+  @IsNumber()
+  @Min(1)
+  @Max(100)
+  @IsOptional()
+  QUEUE_NOTIFICATION_CONCURRENCY?: number = 10;
+
+  @IsNumber()
+  @Min(1)
+  @Max(50)
+  @IsOptional()
+  QUEUE_REPORT_CONCURRENCY?: number = 3;
+
+  @IsNumber()
+  @Min(1)
+  @Max(10)
+  @IsOptional()
+  QUEUE_MAINTENANCE_CONCURRENCY?: number = 1;
 }
 
 export function validate(config: Record<string, unknown>): EnvironmentVariables {
@@ -72,6 +97,24 @@ export function validate(config: Record<string, unknown>): EnvironmentVariables 
   }
   if (typeof config.REDIS_DB === 'string') {
     validatedConfig.REDIS_DB = parseInt(config.REDIS_DB, 10);
+  }
+  if (typeof config.QUEUE_PAYROLL_CONCURRENCY === 'string') {
+    validatedConfig.QUEUE_PAYROLL_CONCURRENCY = parseInt(config.QUEUE_PAYROLL_CONCURRENCY, 10);
+  }
+  if (typeof config.QUEUE_NOTIFICATION_CONCURRENCY === 'string') {
+    validatedConfig.QUEUE_NOTIFICATION_CONCURRENCY = parseInt(
+      config.QUEUE_NOTIFICATION_CONCURRENCY,
+      10,
+    );
+  }
+  if (typeof config.QUEUE_REPORT_CONCURRENCY === 'string') {
+    validatedConfig.QUEUE_REPORT_CONCURRENCY = parseInt(config.QUEUE_REPORT_CONCURRENCY, 10);
+  }
+  if (typeof config.QUEUE_MAINTENANCE_CONCURRENCY === 'string') {
+    validatedConfig.QUEUE_MAINTENANCE_CONCURRENCY = parseInt(
+      config.QUEUE_MAINTENANCE_CONCURRENCY,
+      10,
+    );
   }
 
   return validatedConfig;

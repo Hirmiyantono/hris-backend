@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { getDatabaseConfig } from './config/database.config';
 import { validate } from './config/env.validation';
 import { CacheModule } from './modules/cache/cache.module';
+import { QueueModule } from './modules/queue/queue.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { CacheModule } from './modules/cache/cache.module';
       inject: [ConfigService],
     }),
     CacheModule,
+    QueueModule,
   ],
   controllers: [AppController],
   providers: [AppService],
