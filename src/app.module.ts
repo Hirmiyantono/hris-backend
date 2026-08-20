@@ -7,6 +7,7 @@ import { getDatabaseConfig } from './config/database.config';
 import { validate } from './config/env.validation';
 import { CacheModule } from './modules/cache/cache.module';
 import { QueueModule } from './modules/queue/queue.module';
+import { CoreHrModule } from './modules/core-hr/core-hr.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { QueueModule } from './modules/queue/queue.module';
     }),
     CacheModule,
     QueueModule,
+    CoreHrModule,
   ],
   controllers: [AppController],
   providers: [AppService],
