@@ -25,8 +25,6 @@ export class CreateCurrenciesTable1723680000000 implements MigrationInterface {
             type: 'varchar',
             length: '36',
             isPrimary: true,
-            generationStrategy: 'uuid',
-            default: '(UUID())',
           },
           {
             name: 'currency_code',
