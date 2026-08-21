@@ -52,6 +52,17 @@ export class Currency {
   })
   symbol!: string;
 
+  /**
+   * Number of decimal places (0-4)
+   * E.g., 2 for USD (cents), 0 for IDR (no decimal)
+   */
+  @Column({
+    name: 'decimal_precision',
+    type: 'tinyint',
+    default: 2,
+  })
+  decimalPrecision!: number;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 
